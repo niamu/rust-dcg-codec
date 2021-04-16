@@ -28,91 +28,108 @@ OPTIONS:
 ```
 $ dcg-codec --decode DCGApQzQlQyIIHBU1QxIEEBQlQxIIQFAsYCQU0QQlQyIIHEBEJUMyCGxALFAYNCwYUNU1QxIEbCwYMBiEUCRGlnaSBCcm9zOiBSYWduYWxvYXJkbW9uIFJlZCAoeW91dHUuYmUvbzBLb1cyd3doUjQp
 
-{
-  "deck": [
-    {
-      "count": 1,
-      "number": "BT1-009"
-    },
-    {
-      "count": 4,
-      "number": "BT1-019"
-    },
-    {
-      "count": 2,
-      "number": "BT1-020"
-    },
-    {
-      "count": 2,
-      "number": "BT1-085",
-      "parallel-id": 1
-    },
-    {
-      "count": 4,
-      "number": "BT2-016"
-    },
-    {
-      "count": 4,
-      "number": "BT3-008"
-    },
-    {
-      "count": 4,
-      "number": "BT3-013"
-    },
-    {
-      "count": 3,
-      "number": "BT3-016"
-    },
-    {
-      "count": 2,
-      "number": "BT3-018"
-    },
-    {
-      "count": 4,
-      "number": "BT3-019"
-    },
-    {
-      "count": 3,
-      "number": "BT3-072"
-    },
-    {
-      "count": 4,
-      "number": "ST1-02"
-    },
-    {
-      "count": 4,
-      "number": "ST1-03"
-    },
-    {
-      "count": 3,
-      "number": "ST1-06"
-    },
-    {
-      "count": 1,
-      "number": "ST1-07"
-    },
-    {
-      "count": 3,
-      "number": "ST1-07",
-      "parallel-id": 1
-    },
-    {
-      "count": 2,
-      "number": "ST1-16"
-    }
-  ],
-  "digi-eggs": [
-    {
-      "count": 4,
-      "number": "BT2-001"
-    },
-    {
-      "count": 1,
-      "number": "ST1-01"
-    }
-  ],
-  "name": "Digi Bros: Ragnaloardmon Red (youtu.be/o0KoW2wwhR4)"
-}
+(
+    digi_eggs: [
+        (
+            number: "BT2-001",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "ST1-01",
+            parallel_id: 0,
+            count: 1,
+        ),
+    ],
+    deck: [
+        (
+            number: "BT1-009",
+            parallel_id: 0,
+            count: 1,
+        ),
+        (
+            number: "BT1-019",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "BT1-020",
+            parallel_id: 0,
+            count: 2,
+        ),
+        (
+            number: "BT1-085",
+            parallel_id: 1,
+            count: 2,
+        ),
+        (
+            number: "BT2-016",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "BT3-008",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "BT3-013",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "BT3-016",
+            parallel_id: 0,
+            count: 3,
+        ),
+        (
+            number: "BT3-018",
+            parallel_id: 0,
+            count: 2,
+        ),
+        (
+            number: "BT3-019",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "BT3-072",
+            parallel_id: 0,
+            count: 3,
+        ),
+        (
+            number: "ST1-02",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "ST1-03",
+            parallel_id: 0,
+            count: 4,
+        ),
+        (
+            number: "ST1-06",
+            parallel_id: 0,
+            count: 3,
+        ),
+        (
+            number: "ST1-07",
+            parallel_id: 0,
+            count: 1,
+        ),
+        (
+            number: "ST1-07",
+            parallel_id: 1,
+            count: 3,
+        ),
+        (
+            number: "ST1-16",
+            parallel_id: 0,
+            count: 2,
+        ),
+    ],
+    name: "Digi Bros: Ragnaloardmon Red (youtu.be/o0KoW2wwhR4)",
+)
 ```
 
 ## License

@@ -1,0 +1,15 @@
+[package]
+name = "dcg-codec"
+readme = "README.md"
+description = "Digimon Card Game 2020 deck codec"
+authors = ["Brendon Walsh <brendonwalsh@niamu.com>"]
+version = "0.4.0"
+license = "EPL-2.0"
+edition = "2018"
+
+[dependencies]
+structopt = { version = "0.3", default-features = false }
+base64 = "0.13.0"
+bytes = "1"
+serde = { version = "1.0", features = ["derive"] }
+ron = "0.6.4"

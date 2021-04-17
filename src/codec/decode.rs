@@ -1,3 +1,5 @@
+//! Decoder
+
 pub use crate::codec::{Card, Deck, PREFIX, VERSION};
 
 fn decode_b64(deck_code: &str) -> Result<Vec<u8>, base64::DecodeError> {
@@ -13,50 +15,51 @@ fn get_u32(deck_bytes: &mut Vec<u8>) -> Vec<u8> {
 }
 
 fn compute_checksum(total_card_bytes: usize, deck_bytes: &[u8]) -> u8 {
-    deck_bytes[..total_card_bytes]
+    let checksum = deck_bytes[..total_card_bytes]
         .iter()
         .map(|&b| b as u32)
-        .sum::<u32>() as u8
+        .sum::<u32>();
+    (checksum & 0xFF) as u8
 }
 
 fn get_str_from_bytes(card_set_bytes: &[u8]) -> &str {
-    &std::str::from_utf8(&card_set_bytes).unwrap().trim()
+    std::str::from_utf8(card_set_bytes).unwrap().trim()
 }
 
-fn is_carry_bit(current_byte: &u8, mask_bits: u8) -> bool {
+const fn is_carry_bit(current_byte: u8, mask_bits: u8) -> bool {
     0 != current_byte & (1 << mask_bits)
 }
 
-fn read_bits_from_byte(current_byte: &u8, mask_bits: u8, delta_shift: u8, out_bits: u32) -> u32 {
-    (((current_byte & ((1 << mask_bits) - 1)) as u32) << delta_shift) | out_bits
+fn read_bits_from_byte(current_byte: u8, mask_bits: u8, delta_shift: u8, out_bits: u32) -> u32 {
+    (u32::from(current_byte & ((1 << mask_bits) - 1)) << delta_shift) | out_bits
 }
 
 fn deserialize_card(
     mut deck_bytes: &mut Vec<u8>,
     card_set: &str,
-    card_set_padding: &usize,
+    card_set_padding: usize,
     prev_card_number: &mut u32,
 ) -> Card {
     let mut current_byte: u8 = get_u8(&mut deck_bytes);
     let card_count = (&current_byte >> 6) + 1;
     let card_parallel_id = &current_byte >> 3 & 0x07;
 
-    let mut card_number: u32 = read_bits_from_byte(&current_byte, 3 - 1, 0, 0);
+    let mut card_number: u32 = read_bits_from_byte(current_byte, 3 - 1, 0, 0);
     let mut delta_shift: u8 = 3;
     let u8_bits = 8; // u8::BITS in the future
-    if is_carry_bit(&current_byte, &delta_shift - 1) {
+    if is_carry_bit(current_byte, &delta_shift - 1) {
         loop {
             current_byte = get_u8(&mut deck_bytes);
             card_number =
-                read_bits_from_byte(&current_byte, u8_bits - 1, &delta_shift - 1, card_number);
-            if !is_carry_bit(&current_byte, u8_bits - 1) {
+                read_bits_from_byte(current_byte, u8_bits - 1, &delta_shift - 1, card_number);
+            if !is_carry_bit(current_byte, u8_bits - 1) {
                 break;
             }
             delta_shift = delta_shift + u8_bits - 1;
         }
     }
 
-    *prev_card_number = card_number + *prev_card_number;
+    *prev_card_number += card_number;
 
     Card {
         number: format!(
@@ -100,26 +103,29 @@ fn parse_deck(mut deck_bytes: &mut Vec<u8>) -> Deck {
         for _ in 0..card_set_count {
             let card = deserialize_card(
                 &mut deck_bytes,
-                &card_set,
-                &card_set_padding,
+                card_set,
+                card_set_padding,
                 &mut prev_card_number,
             );
             cards.push(card);
         }
     }
 
-    let deck_name: &str = get_str_from_bytes(&deck_bytes);
-    return Deck {
+    let deck_name: &str = get_str_from_bytes(deck_bytes);
+
+    Deck {
         digi_eggs: (&cards[..digi_egg_set_count]).to_vec(),
         deck: (&cards[digi_egg_set_count..]).to_vec(),
         name: deck_name.to_string(),
-    };
+    }
 }
 
-pub fn decode(deck_code_str: &String) -> Deck {
+#[must_use]
+pub fn decode(deck_code_str: &str) -> Deck {
+    //! Decode public function that takes a deck code and decodes to a Deck struct
     let (prefix, deck_code) = deck_code_str.split_at(3);
     assert_eq!(PREFIX, prefix);
 
     let mut deck_bytes: Vec<u8> = decode_b64(deck_code).unwrap();
-    return parse_deck(&mut deck_bytes);
+    parse_deck(&mut deck_bytes)
 }

@@ -3,9 +3,12 @@ name = "dcg-codec"
 readme = "README.md"
 description = "Digimon Card Game 2020 deck codec"
 authors = ["Brendon Walsh <brendonwalsh@niamu.com>"]
+repository = "https://github.com/niamu/rust-dcg-codec"
 version = "0.4.0"
 license = "EPL-2.0"
 edition = "2018"
+categories = ["encoding"]
+keywords = ["cli"]
 
 [dependencies]
 structopt = { version = "0.3", default-features = false }

@@ -1,3 +1,11 @@
+//! Digimon Card Game 2020 deck codec CLI interface
+
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![deny(clippy::cargo)]
+#![deny(missing_docs)]
+
 mod codec;
 
 pub use crate::codec::decode;

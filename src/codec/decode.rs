@@ -1,6 +1,6 @@
 //! Decoder
 
-pub use crate::codec::{Card, Deck, PREFIX, VERSION};
+pub use crate::codec::{base36_to_char, Card, Deck, Language, PREFIX, VERSION};
 
 fn decode_b64(deck_code: &str) -> Result<Vec<u8>, base64::DecodeError> {
     base64::decode_config(deck_code, base64::URL_SAFE_NO_PAD)
@@ -22,50 +22,91 @@ fn compute_checksum(total_card_bytes: usize, deck_bytes: &[u8]) -> u8 {
     (checksum & 0xFF) as u8
 }
 
-fn get_str_from_bytes(card_set_bytes: &[u8]) -> &str {
-    std::str::from_utf8(card_set_bytes).unwrap().trim()
+fn get_string_from_bytes(card_set_bytes: Vec<u8>) -> String {
+    String::from_utf8(card_set_bytes)
+        .unwrap()
+        .trim()
+        .to_string()
 }
 
 const fn is_carry_bit(current_byte: u8, mask_bits: u8) -> bool {
     0 != current_byte & (1 << mask_bits)
 }
 
-fn read_bits_from_byte(current_byte: u8, mask_bits: u8, delta_shift: u8, out_bits: u32) -> u32 {
+fn read_bits_from_byte(
+    current_byte: u8,
+    mask_bits: u8,
+    delta_shift: u8,
+    out_bits: u32,
+) -> u32 {
     (u32::from(current_byte & ((1 << mask_bits) - 1)) << delta_shift) | out_bits
 }
 
-fn deserialize_card(
+fn read_encoded_u32(
+    mut base_value: u32,
+    current_byte: u8,
+    mut delta_shift: u8,
     mut deck_bytes: &mut Vec<u8>,
-    card_set: &str,
+) -> u32 {
+    if delta_shift - 1 == 0 || is_carry_bit(current_byte, &delta_shift - 1) {
+        loop {
+            let next_byte = get_u8(&mut deck_bytes);
+            base_value = read_bits_from_byte(
+                next_byte,
+                u8::BITS as u8 - 1,
+                &delta_shift - 1,
+                base_value,
+            );
+            if !is_carry_bit(next_byte, u8::BITS as u8 - 1) {
+                break;
+            }
+            delta_shift += u8::BITS as u8 - 1;
+        }
+    } else {
+        return read_bits_from_byte(current_byte, &delta_shift - 1, 0, 0);
+    };
+
+    base_value
+}
+
+fn deserialize_card(
+    version: u8,
+    mut deck_bytes: &mut Vec<u8>,
+    card_set: &String,
     card_set_padding: usize,
     prev_card_number: &mut u32,
 ) -> Card {
-    let mut current_byte: u8 = get_u8(&mut deck_bytes);
-    let card_count = (&current_byte >> 6) + 1;
-    let card_parallel_id = &current_byte >> 3 & 0x07;
+    let current_byte: u8 = get_u8(&mut deck_bytes);
+    let card_count = if version == 0 {
+        (current_byte >> 6) + 1
+    } else {
+        current_byte + 1
+    };
+    let current_byte: u8 = if version == 0 {
+        current_byte
+    } else {
+        get_u8(&mut deck_bytes)
+    };
+    let card_parallel_id = if version == 0 {
+        current_byte >> 3 & 0x07
+    } else {
+        current_byte >> 5
+    };
 
-    let mut card_number: u32 = read_bits_from_byte(current_byte, 3 - 1, 0, 0);
-    let mut delta_shift: u8 = 3;
-    let u8_bits = 8; // u8::BITS in the future
-    if is_carry_bit(current_byte, &delta_shift - 1) {
-        loop {
-            current_byte = get_u8(&mut deck_bytes);
-            card_number =
-                read_bits_from_byte(current_byte, u8_bits - 1, &delta_shift - 1, card_number);
-            if !is_carry_bit(current_byte, u8_bits - 1) {
-                break;
-            }
-            delta_shift = delta_shift + u8_bits - 1;
-        }
-    }
-
-    *prev_card_number += card_number;
+    let delta_shift: u8 = if version == 0 { 3 } else { 5 };
+    let card_number: u32 = read_bits_from_byte(current_byte, delta_shift - 1, 0, 0);
+    *prev_card_number += read_encoded_u32(
+        card_number,
+        current_byte,
+        delta_shift,
+        &mut deck_bytes,
+    );
 
     Card {
         number: format!(
             "{s}-{:0>p$}",
             prev_card_number,
-            s = card_set,
+            s = &card_set,
             p = card_set_padding
         ),
         parallel_id: card_parallel_id,
@@ -76,34 +117,89 @@ fn deserialize_card(
 fn parse_deck(mut deck_bytes: &mut Vec<u8>) -> Deck {
     let version_and_digi_egg_count = get_u8(&mut deck_bytes);
     let version = version_and_digi_egg_count >> 4;
-    assert_eq!(version, VERSION);
+    assert!(VERSION >= version, "Deck version {} not supported", version);
 
-    let digi_egg_set_count = (version_and_digi_egg_count & 0x0F) as usize;
+    let digi_egg_set_count = (version_and_digi_egg_count
+        & if 3 <= version && version <= 4 {
+            0x07
+        } else {
+            0x0F
+        }) as usize;
     let checksum = get_u8(&mut deck_bytes);
-    let deck_name_length = get_u8(&mut deck_bytes) as usize;
+    let deck_name_length_byte = get_u8(&mut deck_bytes) as usize;
+    let mut deck_name_length = deck_name_length_byte;
+    if version >= 5 {
+        deck_name_length &= 0x3F;
+    }
     let total_card_bytes = deck_bytes.len() - deck_name_length;
 
+    let language_number = if version >= 5 {
+        deck_name_length_byte >> 6
+    } else {
+        (version_and_digi_egg_count as usize >> 3) & 0x01
+    };
+    let _language = match language_number {
+        0 => Some(Language::JA),
+        1 => Some(Language::EN),
+        _ => None,
+    };
+
     let computed_checksum = compute_checksum(total_card_bytes, deck_bytes);
-    assert_eq!(checksum, computed_checksum);
+    assert_eq!(checksum, computed_checksum, "Deck checksum failed");
+
+    let mut sideboard_count: usize = if version >= 2 {
+        get_u8(&mut deck_bytes).into()
+    } else {
+        0
+    };
+
+    let _has_icon = version >= 4 && (sideboard_count >> 7) > 0;
+    sideboard_count = if version >= 4 {
+        sideboard_count & 0x7F
+    } else {
+        sideboard_count
+    };
 
     let mut cards: Vec<Card> = Vec::new();
 
     while deck_bytes.len() > deck_name_length {
         // Card Set Header
         // - Card Set
-        let card_set_bytes = get_u32(&mut deck_bytes);
-        let card_set = get_str_from_bytes(&card_set_bytes);
+        let card_set = if version == 0 {
+            let card_set_bytes = get_u32(&mut deck_bytes);
+            get_string_from_bytes(card_set_bytes)
+        } else {
+            let mut s: String = Default::default();
+            loop {
+                let current_byte: u8 = get_u8(&mut deck_bytes);
+                s += base36_to_char(current_byte & 0x3F);
+                if current_byte >> 7 == 0 {
+                    break;
+                }
+            }
+            s.clone()
+        };
         // - Card Set Zero Padding and Count
         let padding_and_set_count = &get_u8(&mut deck_bytes);
         let card_set_padding = ((padding_and_set_count >> 6) + 1) as usize;
-        let card_set_count = padding_and_set_count & 0x3F;
+        let card_set_count: u32 = if version >= 2 {
+            read_encoded_u32(
+                *padding_and_set_count as u32,
+                *padding_and_set_count,
+                6,
+                &mut deck_bytes,
+            )
+        } else {
+            (padding_and_set_count & 0x3F).into()
+        };
 
         let mut prev_card_number: u32 = 0;
 
         for _ in 0..card_set_count {
             let card = deserialize_card(
+                version,
                 &mut deck_bytes,
-                card_set,
+                &card_set,
                 card_set_padding,
                 &mut prev_card_number,
             );
@@ -111,20 +207,26 @@ fn parse_deck(mut deck_bytes: &mut Vec<u8>) -> Deck {
         }
     }
 
-    let deck_name: &str = get_str_from_bytes(deck_bytes);
+    let deck_name = get_string_from_bytes(deck_bytes.to_vec());
 
     Deck {
         digi_eggs: (&cards[..digi_egg_set_count]).to_vec(),
-        deck: (&cards[digi_egg_set_count..]).to_vec(),
-        name: deck_name.to_string(),
+        deck: (&cards[digi_egg_set_count..(cards.len() - sideboard_count)])
+            .to_vec(),
+        sideboard: if sideboard_count == 0 {
+            None
+        } else {
+            Some((&cards[(cards.len() - sideboard_count)..]).to_vec())
+        },
+        language: None,
+        name: deck_name,
     }
 }
 
-#[must_use]
 pub fn decode(deck_code_str: &str) -> Deck {
     //! Decode public function that takes a deck code and decodes to a Deck struct
     let (prefix, deck_code) = deck_code_str.split_at(3);
-    assert_eq!(PREFIX, prefix);
+    assert_eq!(PREFIX, prefix, "Prefix was not 'DCG'");
 
     let mut deck_bytes: Vec<u8> = decode_b64(deck_code).unwrap();
     parse_deck(&mut deck_bytes)

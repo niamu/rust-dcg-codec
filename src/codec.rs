@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Version of the codec
-pub const VERSION: u8 = 2;
+pub const VERSION: u8 = 5;
 
-/// Deck cods are all prefixed with "DCG"
+/// Deck codes are all prefixed with "DCG"
 pub const PREFIX: &str = "DCG";
 
 fn is_zero(n: &u8) -> bool {
@@ -31,25 +31,36 @@ pub struct Card {
 }
 
 /// Deck language
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum Language {
     /// Japanese
-    JA,
+    #[serde(rename = "ja")]
+    Japanese,
     /// English
-    EN,
+    #[serde(rename = "en")]
+    English,
+    /// Chinese
+    #[serde(rename = "zh")]
+    Chinese,
+    /// Korean
+    #[serde(rename = "ko")]
+    Korean,
 }
 
 /// A deck has digi-egg cards (0-5 Cards), a main deck of cards (50 Cards), and a name (0-63 bytes)
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Deck {
     #[serde(rename(serialize = "digi-eggs"))]
     /// cards in digi-egg deck
     pub digi_eggs: Vec<Card>,
     /// cards in main deck
     pub deck: Vec<Card>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     /// cards in sideboard
-    pub sideboard: Option<Vec<Card>>,
+    pub sideboard: Vec<Card>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// deck icon
+    pub icon: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// deck language
     pub language: Option<Language>,

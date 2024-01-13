@@ -1,4 +1,4 @@
-use dcg_codec::codec::{decode, Card, Deck};
+use dcg_codec::codec::{decode, Card, Deck, Language};
 
 #[cfg(test)]
 mod tests {
@@ -92,7 +92,8 @@ mod tests {
                 },
             ]
             .to_vec(),
-            sideboard: None,
+            sideboard: [].to_vec(),
+            icon: None,
             language: None,
             name: "Starter Deck, Gaia Red [ST-1]".to_string(),
         };
@@ -200,7 +201,8 @@ mod tests {
                 },
             ]
             .to_vec(),
-            sideboard: None,
+            sideboard: [].to_vec(),
+            icon: None,
             language: None,
             name: "Digi Bros: Ragnaloardmon Red (youtu.be/o0KoW2wwhR4)"
                 .to_string(),
@@ -274,50 +276,76 @@ mod tests {
                 },
             ]
             .to_vec(),
-            sideboard: Some(
-                [
-                    Card {
-                        number: "BT3-072".to_string(),
-                        parallel_id: 0,
-                        count: 3,
-                    },
-                    Card {
-                        number: "ST1-02".to_string(),
-                        parallel_id: 0,
-                        count: 4,
-                    },
-                    Card {
-                        number: "ST1-03".to_string(),
-                        parallel_id: 0,
-                        count: 4,
-                    },
-                    Card {
-                        number: "ST1-06".to_string(),
-                        parallel_id: 0,
-                        count: 3,
-                    },
-                    Card {
-                        number: "ST1-07".to_string(),
-                        parallel_id: 0,
-                        count: 1,
-                    },
-                    Card {
-                        number: "ST1-07".to_string(),
-                        parallel_id: 1,
-                        count: 3,
-                    },
-                    Card {
-                        number: "ST1-16".to_string(),
-                        parallel_id: 0,
-                        count: 2,
-                    },
-                ]
-                .to_vec(),
-            ),
+            sideboard: [
+                Card {
+                    number: "BT3-072".to_string(),
+                    parallel_id: 0,
+                    count: 3,
+                },
+                Card {
+                    number: "ST1-02".to_string(),
+                    parallel_id: 0,
+                    count: 4,
+                },
+                Card {
+                    number: "ST1-03".to_string(),
+                    parallel_id: 0,
+                    count: 4,
+                },
+                Card {
+                    number: "ST1-06".to_string(),
+                    parallel_id: 0,
+                    count: 3,
+                },
+                Card {
+                    number: "ST1-07".to_string(),
+                    parallel_id: 0,
+                    count: 1,
+                },
+                Card {
+                    number: "ST1-07".to_string(),
+                    parallel_id: 1,
+                    count: 3,
+                },
+                Card {
+                    number: "ST1-16".to_string(),
+                    parallel_id: 0,
+                    count: 2,
+                },
+            ].to_vec(),
+            icon: None,
             language: None,
             name: "_______________________________________________________________"
                 .to_string(),
         };
+
+        let deck_with_sideboard_and_language_encoded = "DCGOkA_B4udAoEDAZydAUEAAYudAYQACQMKAQEBMQSLnQKBAxABi50DhQMIAwUCAwECAwGLnQOBAhgEnJ0BRgMCAwECAwABAiABCV9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXw";
+        let mut deck_with_sideboard_and_language = deck_with_sideboard.clone();
+        deck_with_sideboard_and_language.language = Some(Language::English);
+
+        let deck_with_sideboard_and_language_and_icon_encoded = "DCGSsA_h4udAoEDAZydAUEAAYudAYQACQMKAQEBMQSLnQKBAxABi50DhQMIAwUCAwECAwGLnQOBAhgEnJ0BRgMCAwECAwABAiABCUJBQ0stMDAxX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXw";
+        let mut deck_with_sideboard_and_language_and_icon =
+            deck_with_sideboard_and_language.clone();
+        deck_with_sideboard_and_language_and_icon.icon =
+            Some("BACK-001".to_string());
+        deck_with_sideboard_and_language_and_icon.name =
+            deck_with_sideboard_and_language_and_icon
+                .name
+                .split_at(8)
+                .1
+                .to_string();
+
+        let deck_with_sideboard_and_language_zh_and_icon_encoded = "DCGUsC_h4udAoEDAZydAUEAAYudAYQACQMKAQEBMQSLnQKBAxABi50DhQMIAwUCAwECAwGLnQOBAhgEnJ0BRgMCAwECAwABAiABCUJBQ0stMDAxX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXw";
+        let mut deck_with_sideboard_and_language_zh_and_icon =
+            deck_with_sideboard_and_language_and_icon.clone();
+        deck_with_sideboard_and_language_zh_and_icon.language =
+            Some(Language::Chinese);
+
+        let deck_with_sideboard_and_language_ko_and_icon_encoded = "DCGUsD_h4udAoEDAZydAUEAAYudAYQACQMKAQEBMQSLnQKBAxABi50DhQMIAwUCAwECAwGLnQOBAhgEnJ0BRgMCAwECAwABAiABCUJBQ0stMDAxX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXw";
+        let mut deck_with_sideboard_and_language_ko_and_icon =
+            deck_with_sideboard_and_language_and_icon.clone();
+        deck_with_sideboard_and_language_ko_and_icon.language =
+            Some(Language::Korean);
 
         // Deck encoding of v0 deck is stable
         assert_eq!(decode(digi_bros_deck_encoded), digi_bros_deck);
@@ -327,5 +355,29 @@ mod tests {
 
         // Deck decoding of v2 strings is stable
         assert_eq!(decode(deck_with_sideboard_encoded), deck_with_sideboard);
+
+        // Deck decoding of v3 strings is stable
+        assert_eq!(
+            decode(deck_with_sideboard_and_language_encoded),
+            deck_with_sideboard_and_language
+        );
+
+        // Deck decoding of v4 strings is stable
+        assert_eq!(
+            decode(deck_with_sideboard_and_language_and_icon_encoded),
+            deck_with_sideboard_and_language_and_icon
+        );
+
+        // Deck decoding of v5 (Chinese) strings is stable
+        assert_eq!(
+            decode(deck_with_sideboard_and_language_zh_and_icon_encoded),
+            deck_with_sideboard_and_language_zh_and_icon
+        );
+
+        // Deck decoding of v5 (Korean) strings is stable
+        assert_eq!(
+            decode(deck_with_sideboard_and_language_ko_and_icon_encoded),
+            deck_with_sideboard_and_language_ko_and_icon
+        );
     }
 }

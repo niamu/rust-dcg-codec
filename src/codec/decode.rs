@@ -94,7 +94,8 @@ fn deserialize_card(
     };
 
     let delta_shift: u8 = if version == 0 { 3 } else { 5 };
-    let card_number: u32 = read_bits_from_byte(current_byte, delta_shift - 1, 0, 0);
+    let card_number: u32 =
+        read_bits_from_byte(current_byte, delta_shift - 1, 0, 0);
     *prev_card_number += read_encoded_u32(
         card_number,
         current_byte,
@@ -138,10 +139,12 @@ fn parse_deck(mut deck_bytes: &mut Vec<u8>) -> Deck {
     } else {
         (version_and_digi_egg_count as usize >> 3) & 0x01
     };
-    let _language = match language_number {
-        0 => Some(Language::JA),
-        1 => Some(Language::EN),
-        _ => None,
+    let language = match language_number {
+        0 => Some(Language::Japanese),
+        1 => Some(Language::English),
+        2 => Some(Language::Chinese),
+        3 => Some(Language::Korean),
+        _ => Some(Language::English),
     };
 
     let computed_checksum = compute_checksum(total_card_bytes, deck_bytes);
@@ -153,7 +156,7 @@ fn parse_deck(mut deck_bytes: &mut Vec<u8>) -> Deck {
         0
     };
 
-    let _has_icon = version >= 4 && (sideboard_count >> 7) > 0;
+    let has_icon = version >= 4 && (sideboard_count >> 7) > 0;
     sideboard_count = if version >= 4 {
         sideboard_count & 0x7F
     } else {
@@ -207,19 +210,26 @@ fn parse_deck(mut deck_bytes: &mut Vec<u8>) -> Deck {
         }
     }
 
-    let deck_name = get_string_from_bytes(deck_bytes.to_vec());
+    let mut icon = None;
+    let mut deck_name = get_string_from_bytes(deck_bytes.to_vec());
+    if has_icon {
+        let (icon_raw, new_deck_name) = deck_name.split_at(8);
+        icon = Some(icon_raw.trim().to_string());
+        deck_name = new_deck_name.trim().to_string();
+    }
 
     Deck {
         digi_eggs: (&cards[..digi_egg_set_count]).to_vec(),
         deck: (&cards[digi_egg_set_count..(cards.len() - sideboard_count)])
             .to_vec(),
-        sideboard: if sideboard_count == 0 {
-            None
+        sideboard: if version >= 2 && sideboard_count != 0 {
+            (&cards[(cards.len() - sideboard_count)..]).to_vec()
         } else {
-            Some((&cards[(cards.len() - sideboard_count)..]).to_vec())
+            Vec::<Card>::new()
         },
-        language: None,
-        name: deck_name,
+        icon: icon,
+        language: if version >= 3 { language } else { None },
+        name: deck_name.to_string(),
     }
 }
 

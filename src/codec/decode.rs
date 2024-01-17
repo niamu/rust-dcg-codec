@@ -1,10 +1,9 @@
 //! Decoder
 
-pub use crate::codec::{base36_to_char, Card, Deck, Language, PREFIX, VERSION};
-
-fn decode_b64(deck_code: &str) -> Result<Vec<u8>, base64::DecodeError> {
-    base64::decode_config(deck_code, base64::URL_SAFE_NO_PAD)
-}
+pub use crate::codec::{
+    base36_to_char, compute_checksum, Card, Deck, Language, PREFIX, VERSION,
+};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
 fn get_u8(deck_bytes: &mut Vec<u8>) -> u8 {
     *deck_bytes.drain(..1).collect::<Vec<u8>>().first().unwrap()
@@ -14,14 +13,6 @@ fn get_u32(deck_bytes: &mut Vec<u8>) -> Vec<u8> {
     (*deck_bytes.drain(..4).collect::<Vec<u8>>()).to_vec()
 }
 
-fn compute_checksum(total_card_bytes: usize, deck_bytes: &[u8]) -> u8 {
-    let checksum = deck_bytes[..total_card_bytes]
-        .iter()
-        .map(|&b| b as u32)
-        .sum::<u32>();
-    (checksum & 0xFF) as u8
-}
-
 fn get_string_from_bytes(card_set_bytes: Vec<u8>) -> String {
     String::from_utf8(card_set_bytes)
         .unwrap()
@@ -29,7 +20,7 @@ fn get_string_from_bytes(card_set_bytes: Vec<u8>) -> String {
         .to_string()
 }
 
-const fn is_carry_bit(current_byte: u8, mask_bits: u8) -> bool {
+fn is_carry_bit(current_byte: u8, mask_bits: u8) -> bool {
     0 != current_byte & (1 << mask_bits)
 }
 
@@ -238,6 +229,6 @@ pub fn decode(deck_code_str: &str) -> Deck {
     let (prefix, deck_code) = deck_code_str.split_at(3);
     assert_eq!(PREFIX, prefix, "Prefix was not 'DCG'");
 
-    let mut deck_bytes: Vec<u8> = decode_b64(deck_code).unwrap();
+    let mut deck_bytes: Vec<u8> = URL_SAFE_NO_PAD.decode(deck_code).unwrap();
     parse_deck(&mut deck_bytes)
 }
